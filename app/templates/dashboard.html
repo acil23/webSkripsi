@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="dashboard-card hero-card">
+    <div class="hero-left">
+        <div class="hero-system-row">
+            <div class="hero-logo">UB</div>
+            <div>
+                <h2>{{ system_name }}</h2>
+                <p>{{ institution_name }}</p>
+            </div>
+        </div>
+
+        <div class="hero-copy">
+            <h1>{{ page_title }}</h1>
+            <h3>{{ welcome_title }}</h3>
+            <p>
+                Sistem ini digunakan untuk membantu proses penyusunan jadwal mata kuliah
+                secara terstruktur menggunakan <em>{{ active_algorithm }}</em>.
+            </p>
+        </div>
+
+        <div class="hero-actions">
+            <a class="btn btn-primary" href="/unggah-data">▣ Mulai Penjadwalan</a>
+            <a class="btn btn-secondary" href="/riwayat-jadwal">◷ Lihat Riwayat Jadwal</a>
+        </div>
+    </div>
+
+    <div class="hero-right">
+        <div class="status-pill success">✓ {{ system_status }}</div>
+        <div class="illustration-card" aria-label="Ilustrasi sistem penjadwalan">
+            <div class="calendar-illustration">
+                <div class="calendar-header"></div>
+                <div class="calendar-grid">
+                    {% for i in range(28) %}
+                        <span class="calendar-cell {% if i in [5, 11, 14, 19, 22] %}filled{% endif %}"></span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="book-stack"></div>
+            <div class="mini-laptop"></div>
+        </div>
+    </div>
+
+    <div class="workflow-strip">
+        {% for step in workflow_steps %}
+            <div class="workflow-step">
+                <span class="workflow-icon">{% if loop.last %}✓{% else %}→{% endif %}</span>
+                <span>{{ step }}</span>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ page_title }} - Sistem Penjadwalan Mata Kuliah</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}" />
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-logo">UB</div>
+                <div>
+                    <div class="brand-title">Sistem Penjadwalan<br />Mata Kuliah</div>
+                    <div class="brand-subtitle">Fakultas Ilmu Komputer<br />Universitas Brawijaya</div>
+                </div>
+            </div>
+
+            <nav class="side-nav" aria-label="Navigasi utama">
+                {% set menus = [
+                    ('Dashboard', '/dashboard', '⌂'),
+                    ('Unggah Data', '/unggah-data', '☁'),
+                    ('Konfigurasi Kelas', '/konfigurasi-kelas', '👥'),
+                    ('Parameter Algoritma', '/parameter-algoritma', '☷'),
+                    ('Eksekusi Penjadwalan', '/eksekusi-penjadwalan', '▷'),
+                    ('Hasil Penjadwalan', '/hasil-penjadwalan', '▣'),
+                    ('Riwayat Jadwal', '/riwayat-jadwal', '◷')
+                ] %}
+
+                {% for label, href, icon in menus %}
+                    <a class="nav-item {% if active_menu == label %}active{% endif %}" href="{{ href }}">
+                        <span class="nav-icon">{{ icon }}</span>
+                        <span>{{ label }}</span>
+                    </a>
+                {% endfor %}
+            </nav>
+
+            <div class="sidebar-info">
+                <div class="info-icon">i</div>
+                <p>Sistem menggunakan <strong>Memetic Algorithm</strong> untuk menghasilkan jadwal mata kuliah yang optimal.</p>
+            </div>
+        </aside>
+
+        <main class="main-area">
+            <header class="topbar">
+                <div></div>
+                <div class="topbar-actions">
+                    <div class="notification" aria-label="Notifikasi">
+                        <span class="bell">♧</span>
+                        <span class="badge">3</span>
+                    </div>
+                    <div class="admin-profile">
+                        <div class="avatar">●</div>
+                        <div>
+                            <div class="admin-name">Admin Program Studi</div>
+                            <div class="admin-role">Admin</div>
+                        </div>
+                        <span class="chevron">⌄</span>
+                    </div>
+                </div>
+            </header>
+
+            <section class="content-area">
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>
