@@ -1,11 +1,14 @@
 """Boundary layer untuk halaman utama alur penjadwalan."""
 
-from fastapi import APIRouter, Request
+from __future__ import annotations
+
+from fastapi import APIRouter, File, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from app.controllers.scheduling_controller import SchedulingController
 from app.core.paths import TEMPLATE_DIR
+from app.services.data_loader_service import UploadedCsvPayload
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
@@ -40,24 +43,146 @@ def dashboard_alias(request: Request):
 
 @router.get("/unggah-data", response_class=HTMLResponse)
 def upload_data_page(request: Request):
-    context = controller.get_placeholder_context(
-        title="Manajemen Data Masukan",
-        description="Halaman upload CSV dan validasi data akan diimplementasikan pada Tahap 2.",
-    )
+    context = controller.get_upload_page_context()
     return templates.TemplateResponse(
-        "placeholder.html",
+        "unggah_data.html",
+        {"request": request, "active_menu": "Unggah Data", **context},
+    )
+
+
+def _has_uploaded_file(file: UploadFile | None) -> bool:
+    return bool(file and file.filename)
+
+
+async def _payload_from_upload(file: UploadFile) -> UploadedCsvPayload:
+    content = await file.read()
+    return UploadedCsvPayload(filename=file.filename or "", content=content)
+
+
+@router.post("/api/upload", response_class=HTMLResponse)
+async def upload_data(
+    request: Request,
+    data_mata_kuliah: list[UploadFile] = File(default=[]),
+    data_dosen: UploadFile | None = File(default=None),
+    data_preferensi_dosen: UploadFile | None = File(default=None),
+    data_ruang_kelas: UploadFile | None = File(default=None),
+    data_slot_waktu: UploadFile | None = File(default=None),
+    data_jumlah_mahasiswa: UploadFile | None = File(default=None),
+    data_prakrs: UploadFile | None = File(default=None),
+):
+    """Endpoint UC-01 untuk mengunggah dan memvalidasi data masukan CSV."""
+    payloads: dict[str, list[UploadedCsvPayload]] = {
+        "data_mata_kuliah": [],
+        "data_dosen": [],
+        "data_preferensi_dosen": [],
+        "data_ruang_kelas": [],
+        "data_slot_waktu": [],
+        "data_jumlah_mahasiswa": [],
+        "data_prakrs": [],
+    }
+
+    for file in data_mata_kuliah:
+        if _has_uploaded_file(file):
+            payloads["data_mata_kuliah"].append(await _payload_from_upload(file))
+
+    single_files = {
+        "data_dosen": data_dosen,
+        "data_preferensi_dosen": data_preferensi_dosen,
+        "data_ruang_kelas": data_ruang_kelas,
+        "data_slot_waktu": data_slot_waktu,
+        "data_jumlah_mahasiswa": data_jumlah_mahasiswa,
+        "data_prakrs": data_prakrs,
+    }
+    for key, file in single_files.items():
+        if _has_uploaded_file(file):
+            payloads[key].append(await _payload_from_upload(file))
+
+    dataset = controller.upload_data(payloads)
+    if dataset.is_valid():
+        alert = {
+            "type": "success",
+            "title": "Berhasil!",
+            "message": "Data masukan berhasil divalidasi.",
+        }
+    else:
+        alert = {
+            "type": "error",
+            "title": "Gagal!",
+            "message": "Masih terdapat data yang belum lengkap atau struktur file yang tidak sesuai.",
+        }
+
+    context = controller.get_upload_page_context(alert=alert)
+    return templates.TemplateResponse(
+        "unggah_data.html",
         {"request": request, "active_menu": "Unggah Data", **context},
     )
 
 
 @router.get("/konfigurasi-kelas", response_class=HTMLResponse)
-def class_opening_page(request: Request):
-    context = controller.get_placeholder_context(
-        title="Konfigurasi Pembukaan Kelas",
-        description="Tabel rekomendasi dan penyimpanan konfigurasi kelas akan diimplementasikan pada Tahap 3.",
+def class_opening_page(
+    request: Request,
+    semester_active: str = Query(default="Ganjil"),
+    jenis_mk: str = Query(default="Semua"),
+    search: str = Query(default=""),
+):
+    context = controller.get_class_opening_page_context(
+        semester_active=semester_active,
+        jenis_mk=jenis_mk,
+        search=search,
     )
     return templates.TemplateResponse(
-        "placeholder.html",
+        "konfigurasi_kelas.html",
+        {"request": request, "active_menu": "Konfigurasi Kelas", **context},
+    )
+
+
+@router.post("/api/class-opening/generate", response_class=HTMLResponse)
+async def generate_class_opening(
+    request: Request,
+    semester_active: str = Query(default="Ganjil"),
+):
+    try:
+        controller.generate_class_opening(semester_active=semester_active)
+        alert = {
+            "type": "success",
+            "title": "Berhasil!",
+            "message": "Rekomendasi pembukaan kelas berhasil dibentuk.",
+        }
+    except Exception as exc:
+        alert = {
+            "type": "error",
+            "title": "Gagal!",
+            "message": str(exc),
+        }
+    context = controller.get_class_opening_page_context(semester_active=semester_active, alert=alert)
+    return templates.TemplateResponse(
+        "konfigurasi_kelas.html",
+        {"request": request, "active_menu": "Konfigurasi Kelas", **context},
+    )
+
+
+@router.post("/api/class-opening/update", response_class=HTMLResponse)
+async def update_class_opening(
+    request: Request,
+    semester_active: str = Query(default="Ganjil"),
+):
+    form = await request.form()
+    success = controller.update_class_opening(dict(form), semester_active=semester_active)
+    if success:
+        alert = {
+            "type": "success",
+            "title": "Berhasil!",
+            "message": "Konfigurasi pembukaan kelas berhasil disimpan dan sesi perkuliahan telah terbentuk.",
+        }
+    else:
+        alert = {
+            "type": "error",
+            "title": "Gagal!",
+            "message": "Terdapat jumlah kelas final yang tidak valid.",
+        }
+    context = controller.get_class_opening_page_context(semester_active=semester_active, alert=alert)
+    return templates.TemplateResponse(
+        "konfigurasi_kelas.html",
         {"request": request, "active_menu": "Konfigurasi Kelas", **context},
     )
 

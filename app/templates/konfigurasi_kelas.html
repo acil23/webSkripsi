@@ -1,0 +1,183 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header class-opening-header">
+    <div>
+        <h1>Konfigurasi Pembukaan Kelas</h1>
+        <p>{{ description }}</p>
+    </div>
+    {% if alert %}
+        <div class="toast {{ alert.type }}">
+            <span class="toast-icon">{% if alert.type == 'success' %}✓{% else %}✕{% endif %}</span>
+            <div>
+                <strong>{{ alert.title }}</strong>
+                <p>{{ alert.message }}</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<div class="metric-grid class-opening-metrics">
+    <article class="metric-card">
+        <div class="metric-icon blue">▤</div>
+        <div>
+            <span>Total Mata Kuliah</span>
+            <strong>{{ summary.total_mata_kuliah }}</strong>
+            <p>{{ summary.total_mata_kuliah_dibuka }} mata kuliah dibuka</p>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon teal">👥</div>
+        <div>
+            <span>Kelas Direkomendasikan</span>
+            <strong>{{ summary.total_kelas_rekomendasi }}</strong>
+            <p>Total kelas yang disarankan</p>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon purple">●</div>
+        <div>
+            <span>Estimasi Peserta</span>
+            <strong>{{ summary.total_estimasi_peserta }}</strong>
+            <p>Total mahasiswa estimasi</p>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon green">✓</div>
+        <div>
+            <span>Status Konfigurasi</span>
+            <strong class="status-text">{{ summary.status_konfigurasi }}</strong>
+            <p>{{ summary.total_sesi_terbentuk }} sesi perkuliahan terbentuk</p>
+        </div>
+    </article>
+</div>
+
+<section class="class-opening-card">
+    <div class="section-title-row">
+        <div>
+            <h2>Rekomendasi Pembukaan Kelas</h2>
+            <p>Kolom jumlah kelas final dapat disesuaikan sebelum disimpan.</p>
+        </div>
+        <form action="/api/class-opening/generate?semester_active={{ semester_active }}" method="post">
+            <button class="secondary-action" type="submit" {% if not is_dataset_ready %}disabled{% endif %}>Muat Ulang Rekomendasi</button>
+        </form>
+    </div>
+
+    <form class="filter-row" method="get" action="/konfigurasi-kelas">
+        <label>
+            <span>Semester</span>
+            <select name="semester_active">
+                <option value="Ganjil" {% if semester_active == 'Ganjil' %}selected{% endif %}>Ganjil</option>
+                <option value="Genap" {% if semester_active == 'Genap' %}selected{% endif %}>Genap</option>
+            </select>
+        </label>
+        <label>
+            <span>Jenis Mata Kuliah</span>
+            <select name="jenis_mk">
+                <option value="Semua" {% if jenis_mk == 'Semua' %}selected{% endif %}>Semua</option>
+                <option value="Wajib" {% if jenis_mk == 'Wajib' %}selected{% endif %}>Wajib</option>
+                <option value="Pilihan" {% if jenis_mk == 'Pilihan' %}selected{% endif %}>Pilihan</option>
+            </select>
+        </label>
+        <label class="search-field">
+            <span>Cari Mata Kuliah</span>
+            <input type="search" name="search" value="{{ search }}" placeholder="Cari mata kuliah..." />
+        </label>
+        <button class="secondary-action filter-button" type="submit">Terapkan Filter</button>
+    </form>
+
+    {% if not is_dataset_ready %}
+        <div class="empty-state-inline">
+            <strong>Data masukan belum valid.</strong>
+            <p>Silakan kembali ke halaman Unggah Data dan validasi seluruh file CSV terlebih dahulu.</p>
+            <a class="primary-button" href="/unggah-data">Kembali ke Unggah Data</a>
+        </div>
+    {% elif configs|length == 0 %}
+        <div class="empty-state-inline">
+            <strong>Tidak ada data konfigurasi yang sesuai filter.</strong>
+            <p>Ubah filter semester, jenis mata kuliah, atau kata kunci pencarian.</p>
+        </div>
+    {% else %}
+        <form action="/api/class-opening/update?semester_active={{ semester_active }}" method="post">
+            <div class="table-wrapper">
+                <table class="class-opening-table">
+                    <thead>
+                        <tr>
+                            <th>Kode MK</th>
+                            <th>Nama Mata Kuliah</th>
+                            <th>SKS</th>
+                            <th>Jenis</th>
+                            <th>Estimasi Peserta</th>
+                            <th>Kapasitas Target</th>
+                            <th>Kelas Rekomendasi</th>
+                            <th>Kelas Final</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for config in configs %}
+                            <tr>
+                                <td><strong>{{ config.kode_mk }}</strong></td>
+                                <td>
+                                    {{ config.nama_mk }}
+                                    {% if config.manual_override %}
+                                        <span class="manual-label">Override</span>
+                                    {% endif %}
+                                    {% if config.errors %}
+                                        <ul class="row-errors">
+                                            {% for error in config.errors %}<li>{{ error }}</li>{% endfor %}
+                                        </ul>
+                                    {% endif %}
+                                </td>
+                                <td>{{ config.sks }}</td>
+                                <td>{{ config.jenis_mk }}</td>
+                                <td>{{ config.estimasi_peserta }}</td>
+                                <td>{{ config.kapasitas_target }}</td>
+                                <td>{{ config.jumlah_kelas_rekomendasi }}</td>
+                                <td>
+                                    <input
+                                        class="class-count-input"
+                                        type="number"
+                                        name="jumlah_kelas_final_{{ config.id_konfigurasi }}"
+                                        value="{{ config.jumlah_kelas_final }}"
+                                        min="0"
+                                        max="20"
+                                    />
+                                </td>
+                                <td>
+                                    <span class="opening-status {{ config.status_class }}">{{ config.status_label }}</span>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="class-opening-footer">
+                <div class="footer-note">
+                    <span class="summary-icon success">✓</span>
+                    <p>Perubahan pada kolom Kelas Final dapat disimpan sebelum melanjutkan tahap berikutnya.</p>
+                </div>
+                <div class="footer-actions">
+                    <button class="secondary-action" type="submit">▣ Simpan Konfigurasi</button>
+                    {% if is_class_opening_saved %}
+                        <a class="primary-button" href="/parameter-algoritma">Lanjut ke Parameter Algoritma →</a>
+                    {% else %}
+                        <button class="primary-button disabled" type="button" disabled>Lanjut ke Parameter Algoritma →</button>
+                    {% endif %}
+                </div>
+            </div>
+        </form>
+    {% endif %}
+</section>
+
+<section class="validation-detail-card">
+    <h2>Ringkasan Pembentukan Kelas dan Sesi</h2>
+    <div class="summary-list-grid">
+        <div><span>Kelas Final</span><strong>{{ summary.total_kelas_final }}</strong></div>
+        <div><span>Kelas Terbentuk</span><strong>{{ summary.total_kelas_terbentuk }}</strong></div>
+        <div><span>Sesi Perkuliahan</span><strong>{{ summary.total_sesi_terbentuk }}</strong></div>
+        <div><span>Manual Override</span><strong>{{ summary.manual_overrides }}</strong></div>
+    </div>
+</section>
+{% endblock %}

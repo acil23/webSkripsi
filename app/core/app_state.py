@@ -1,8 +1,8 @@
 """State sementara aplikasi.
 
-Pada Tahap 1, state ini belum digunakan untuk data penjadwalan.
-File ini disiapkan agar tahap berikutnya dapat menyimpan currentDataset,
-currentParameter, currentClassOpening, dan currentResult sesuai rancangan Bab 5.
+State ini dipakai untuk menjaga alur bertahap sesuai rancangan Bab 5:
+currentDataset, currentParameter, currentClassOpening, currentSessions, dan
+currentResult. Pada Tahap 2, field yang mulai digunakan adalah current_dataset.
 """
 
 from dataclasses import dataclass, field

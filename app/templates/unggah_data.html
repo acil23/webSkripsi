@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header upload-header">
+    <div>
+        <h1>Manajemen Data Masukan</h1>
+        <p>{{ description }}</p>
+    </div>
+    {% if alert %}
+        <div class="toast {{ alert.type }}">
+            <span class="toast-icon">{% if alert.type == 'success' %}✓{% else %}✕{% endif %}</span>
+            <div>
+                <strong>{{ alert.title }}</strong>
+                <p>{{ alert.message }}</p>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<form class="upload-form" action="/api/upload" method="post" enctype="multipart/form-data">
+    <div class="upload-grid">
+        {% for dataset in upload_datasets %}
+            {% set status = status_by_key[dataset.key] %}
+            <article class="upload-card">
+                <div class="upload-card-title">
+                    <span class="upload-card-icon">{{ dataset.icon }}</span>
+                    <h2>{{ dataset.label }}</h2>
+                </div>
+
+                <label class="drop-zone" for="{{ dataset.input_name }}">
+                    <span class="cloud-icon">☁</span>
+                    <span>Seret & Lepas File .csv di sini</span>
+                </label>
+
+                <input
+                    id="{{ dataset.input_name }}"
+                    class="file-input"
+                    type="file"
+                    name="{{ dataset.input_name }}"
+                    accept=".csv"
+                    {% if dataset.multiple %}multiple{% endif %}
+                />
+
+                <label class="browse-button" for="{{ dataset.input_name }}">Browse File</label>
+                <a class="template-link" href="#" aria-disabled="true">↓ Unduh Template CSV</a>
+                <p class="format-note">Format: .csv, Maks: 2MB</p>
+
+                <div class="status-badge {{ status.badge_class }}">
+                    <span>{% if status.status == 'Valid' %}✓{% elif status.status == 'Error' %}✕{% else %}●{% endif %}</span>
+                    {{ status.status }}
+                </div>
+
+                {% if status.filename %}
+                    <p class="uploaded-file-name">{{ status.filename }}</p>
+                {% endif %}
+                {% if status.errors %}
+                    <ul class="upload-errors">
+                        {% for error in status.errors[:2] %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </article>
+        {% endfor %}
+    </div>
+
+    <div class="upload-summary-card">
+        <div class="summary-left">
+            <div class="summary-icon {% if dataset_view.is_valid %}success{% else %}info{% endif %}">
+                {% if dataset_view.is_valid %}✓{% else %}i{% endif %}
+            </div>
+            <div>
+                <strong>Status Validasi Data Masukan</strong>
+                <p>
+                    Valid: {{ dataset_view.summary.Valid }} ·
+                    Belum Diunggah: {{ dataset_view.summary['Belum Diunggah'] }} ·
+                    Error: {{ dataset_view.summary.Error }}
+                </p>
+                {% if dataset_view.cross_validation_messages %}
+                    {% for message in dataset_view.cross_validation_messages %}
+                        <p class="warning-text">{{ message }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="summary-actions">
+            <button class="primary-button" type="submit">Validasi Data Masukan</button>
+            {% if dataset_view.is_valid %}
+                <a class="primary-button" href="/konfigurasi-kelas">Lanjut ke Konfigurasi Pembukaan Kelas →</a>
+            {% else %}
+                <button class="primary-button disabled" type="button" disabled>Lanjut ke Konfigurasi Pembukaan Kelas →</button>
+            {% endif %}
+        </div>
+    </div>
+</form>
+
+<section class="validation-detail-card">
+    <h2>Detail Validasi Struktur CSV</h2>
+    <div class="table-wrapper">
+        <table class="validation-table">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Status</th>
+                    <th>File</th>
+                    <th>Baris</th>
+                    <th>Kolom</th>
+                    <th>Keterangan</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in dataset_view.datasets %}
+                    <tr>
+                        <td>{{ item.label }}</td>
+                        <td><span class="status-badge small {{ item.badge_class }}">{{ item.status }}</span></td>
+                        <td>{{ item.filename or '-' }}</td>
+                        <td>{{ item.row_count }}</td>
+                        <td>{{ item.column_count }}</td>
+                        <td>
+                            {% if item.errors %}
+                                {{ item.errors | join('; ') }}
+                            {% elif item.status == 'Valid' %}
+                                Struktur file sesuai template.
+                            {% else %}
+                                File belum diunggah.
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
