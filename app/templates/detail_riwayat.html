@@ -1,0 +1,146 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header-row result-header">
+    <div class="page-header">
+        <h1>{{ page_title }}</h1>
+        <p>{{ description }}</p>
+    </div>
+</div>
+
+{% if alert %}
+<div class="inline-alert {{ alert.type if alert.type != 'info' else 'info' }}">
+    <span>{% if alert.type == 'error' %}!{% elif alert.type == 'success' %}✓{% else %}i{% endif %}</span>
+    <div><strong>{{ alert.title }}</strong><p>{{ alert.message }}</p></div>
+</div>
+{% endif %}
+
+{% if not has_history %}
+<section class="dashboard-card placeholder-card result-empty-card">
+    <div class="placeholder-icon">!</div>
+    <h2>Riwayat Tidak Ditemukan</h2>
+    <p>Data riwayat jadwal yang dipilih tidak dapat dimuat.</p>
+    <a class="primary-button" href="/riwayat-jadwal">Kembali ke Riwayat Jadwal</a>
+</section>
+{% else %}
+{% set rv = result_view %}
+<section class="panel-card history-detail-hero">
+    <div class="section-title-left">
+        <span class="section-icon blue-icon">▣</span>
+        <div>
+            <h2>{{ summary.nama_riwayat }}</h2>
+            <p class="muted-small">Disimpan pada: {{ summary.waktu_simpan }} · {{ summary.semester_active }} · {{ summary.model_name }}</p>
+        </div>
+    </div>
+    <div class="result-actions">
+        <a class="secondary-action" href="/riwayat-jadwal">← Kembali</a>
+        <a class="primary-button" href="#modal-ekspor-riwayat">⇩ Ekspor Ulang</a>
+    </div>
+</section>
+
+<section class="result-metric-grid">
+    <article class="metric-card result-metric teal"><div class="metric-icon teal">↗</div><div><span>Fitness</span><strong>{{ "%.6f"|format(summary.fitness) }}</strong></div></article>
+    <article class="metric-card result-metric green"><div class="metric-icon green">◇</div><div><span>Total Konflik</span><strong>{{ summary.total_conflict }}</strong></div></article>
+    <article class="metric-card result-metric blue"><div class="metric-icon blue">▤</div><div><span>Total Penalty</span><strong>{{ "%.4f"|format(summary.total_penalty) }}</strong></div></article>
+    <article class="metric-card result-metric purple"><div class="metric-icon purple">♎</div><div><span>Standar Deviasi Beban</span><strong>{{ "%.4f"|format(summary.standar_deviasi_beban) }}</strong></div></article>
+</section>
+
+{% set chart_prefix = "riwayat" %}
+{% include "partials/analysis_charts.html" %}
+
+<section class="panel-card detail-tabs-panel">
+    <div class="detail-tabs">
+        <a href="#jadwal">Jadwal</a>
+        <a href="#evaluasi">Evaluasi</a>
+        <a href="#parameter">Parameter</a>
+        <a href="#konfigurasi">Konfigurasi Kelas</a>
+        <a href="#beban">Beban Dosen</a>
+    </div>
+
+    <div id="jadwal" class="detail-section-grid">
+        <article class="detail-main-table">
+            <h2>Jadwal Tersimpan</h2>
+            <div class="table-wrapper">
+                <table class="result-table schedule-table">
+                    <thead><tr><th>Kode MK</th><th>Mata Kuliah</th><th>Kelas</th><th>Dosen</th><th>Ruang</th><th>Hari</th><th>Jam</th></tr></thead>
+                    <tbody>
+                    {% for row in rv.schedule_preview_rows %}
+                        <tr><td><strong>{{ row.kode_mk }}</strong></td><td>{{ row.mata_kuliah }}</td><td>{{ row.kelas }}</td><td>{{ row.dosen }}</td><td>{{ row.ruang }}</td><td>{{ row.hari }}</td><td>{{ row.jam_mulai }} - {{ row.jam_selesai }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted-small">Menampilkan 25 dari {{ rv.total_schedule_rows }} sesi jadwal. Gunakan ekspor ulang untuk data lengkap.</p>
+        </article>
+        <aside class="detail-side-card" id="parameter">
+            <h2>Parameter Algoritma</h2>
+            <div class="evaluation-list">
+                {% for row in parameter_rows %}
+                <div><span>{{ row.label }}</span><strong>{{ row.value }}</strong></div>
+                {% endfor %}
+            </div>
+        </aside>
+    </div>
+
+    <div id="evaluasi" class="detail-two-column">
+        <article class="panel-card inner-panel">
+            <h2>Evaluasi</h2>
+            <div class="evaluation-list">
+                <div><span>Hard Penalty</span><strong>{{ "%.4f"|format(rv.evaluation.hard_penalty) }}</strong></div>
+                <div><span>Preference Penalty</span><strong>{{ "%.4f"|format(rv.evaluation.preference_penalty) }}</strong></div>
+                <div><span>Fairness Penalty</span><strong>{{ "%.4f"|format(rv.evaluation.fairness_penalty) }}</strong></div>
+                <div><span>Konflik Kapasitas</span><strong>{{ rv.evaluation.capacity_conflicts }}</strong></div>
+                <div><span>Konflik Ruang</span><strong>{{ rv.evaluation.room_conflicts }}</strong></div>
+                <div><span>Konflik Dosen</span><strong>{{ rv.evaluation.lecturer_conflicts }}</strong></div>
+            </div>
+        </article>
+    </div>
+
+    <div id="konfigurasi" class="detail-main-table">
+        <h2>Konfigurasi Kelas</h2>
+        <div class="table-wrapper">
+            <table class="result-table">
+                <thead><tr><th>Kode MK</th><th>Nama MK</th><th>Jenis</th><th>Estimasi Peserta</th><th>Kelas Rekomendasi</th><th>Kelas Final</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for row in class_opening_preview %}
+                    <tr><td><strong>{{ row.kode_mk }}</strong></td><td>{{ row.nama_mk }}</td><td>{{ row.jenis_mk }}</td><td>{{ row.estimasi_peserta }}</td><td>{{ row.jumlah_kelas_rekomendasi }}</td><td>{{ row.jumlah_kelas_final }}</td><td>{{ row.status_label }}</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="muted-small">Menampilkan {{ class_opening_preview|length }} dari {{ class_opening_total }} konfigurasi.</p>
+    </div>
+
+    <div id="beban" class="detail-main-table">
+        <h2>Beban Dosen</h2>
+        <div class="table-wrapper">
+            <table class="result-table workload-table">
+                <thead><tr><th>Dosen</th><th>Total SKS</th><th>Jumlah Sesi</th><th>Jumlah MK Unik</th><th>Dihitung Fairness</th><th>Status Fairness</th></tr></thead>
+                <tbody>
+                {% for row in rv.workload_preview_rows %}
+                    <tr><td><strong>{{ row.dosen }}</strong></td><td>{{ row.total_sks }}</td><td>{{ row.jumlah_sesi }}</td><td>{{ row.jumlah_mk_unik }}</td><td>{{ "Ya" if row.dihitung_fairness else "Tidak" }}</td><td><span class="fairness-badge {{ row.status_fairness|lower|replace(' ', '-') }}">{{ row.status_fairness }}</span></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<div id="modal-ekspor-riwayat" class="modal-overlay">
+    <div class="history-modal-card export-choice-modal">
+        <a href="#" class="modal-close" aria-label="Tutup modal">×</a>
+        <h2>Ekspor Ulang Riwayat</h2>
+        <p class="muted-small">Pilih jenis berkas yang ingin diunduh dari riwayat ini.</p>
+        <div class="export-choice-grid">
+            <a class="export-choice-card" href="/history/{{ summary.id_riwayat }}/export/schedule"><strong>Jadwal Perkuliahan</strong><span>CSV</span></a>
+            <a class="export-choice-card" href="/history/{{ summary.id_riwayat }}/export/evaluation"><strong>Evaluasi Jadwal</strong><span>CSV</span></a>
+            <a class="export-choice-card" href="/history/{{ summary.id_riwayat }}/export/workload"><strong>Beban Dosen</strong><span>CSV</span></a>
+            <a class="export-choice-card" href="/history/{{ summary.id_riwayat }}/export/convergence-log"><strong>Log Konvergensi</strong><span>CSV</span></a>
+            <a class="export-choice-card wide" href="/history/{{ summary.id_riwayat }}/export/package"><strong>Paket Lengkap</strong><span>ZIP</span></a>
+        </div>
+    </div>
+</div>
+
+{% include "partials/chart_export_script.html" %}
+{% endif %}
+{% endblock %}

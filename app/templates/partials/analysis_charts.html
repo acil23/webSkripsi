@@ -1,0 +1,163 @@
+{% macro render_grid(plot) -%}
+    <rect x="0" y="0" width="{{ plot.width }}" height="{{ plot.height }}" fill="#ffffff" />
+    <rect x="{{ plot.left }}" y="{{ plot.top }}" width="{{ plot.plot_width }}" height="{{ plot.plot_height }}" fill="#ffffff" />
+    {% for tick in plot.y_ticks %}
+    <line x1="{{ plot.left }}" y1="{{ tick.y }}" x2="{{ plot.plot_right }}" y2="{{ tick.y }}" stroke="#d1d5db" stroke-width="1" stroke-dasharray="5 5" />
+    <text x="{{ plot.left - 12 }}" y="{{ tick.y + 5 }}" text-anchor="end" font-size="14" fill="#334155">{{ tick.label }}</text>
+    {% endfor %}
+    {% for tick in plot.x_ticks | default([]) %}
+    <line x1="{{ tick.x }}" y1="{{ plot.top }}" x2="{{ tick.x }}" y2="{{ plot.plot_bottom }}" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="5 5" />
+    <text x="{{ tick.x }}" y="{{ plot.plot_bottom + 28 }}" text-anchor="middle" font-size="14" fill="#334155">{{ tick.label }}</text>
+    {% endfor %}
+    <line x1="{{ plot.left }}" y1="{{ plot.plot_bottom }}" x2="{{ plot.plot_right }}" y2="{{ plot.plot_bottom }}" stroke="#0f172a" stroke-width="1.3" />
+    <line x1="{{ plot.left }}" y1="{{ plot.top }}" x2="{{ plot.left }}" y2="{{ plot.plot_bottom }}" stroke="#0f172a" stroke-width="1.3" />
+{%- endmacro %}
+
+{% macro render_line_svg(svg_id, plot, file_name) -%}
+<div class="svg-chart-wrap light-chart-wrap enhanced-chart-wrap">
+    <svg id="{{ svg_id }}" class="svg-chart exportable-svg enhanced-chart" viewBox="{{ plot.view_box }}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="{{ plot.title }}" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff;color-scheme:light;">
+        <defs>
+            <marker id="{{ svg_id }}-arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto" markerUnits="strokeWidth">
+                <path d="M0,0 L10,4 L0,8 Z" fill="#111827" />
+            </marker>
+        </defs>
+        {{ render_grid(plot) }}
+        <text x="{{ plot.width / 2 }}" y="34" text-anchor="middle" font-size="24" font-weight="800" fill="#0f172a">{{ plot.title }}</text>
+        <text x="{{ plot.width / 2 }}" y="{{ plot.height - 24 }}" text-anchor="middle" font-size="18" fill="#0f172a">{{ plot.x_label }}</text>
+        <text x="24" y="{{ plot.top + (plot.plot_height / 2) }}" text-anchor="middle" font-size="18" fill="#0f172a" transform="rotate(-90 24 {{ plot.top + (plot.plot_height / 2) }})">{{ plot.y_label }}</text>
+        <rect x="{{ plot.left + 10 }}" y="50" width="174" height="26" rx="6" fill="#ffffff" stroke="#cbd5e1" />
+        <line x1="{{ plot.left + 22 }}" y1="63" x2="{{ plot.left + 58 }}" y2="63" stroke="{{ plot.stroke }}" stroke-width="3" />
+        <text x="{{ plot.left + 68 }}" y="68" font-size="14" fill="#0f172a">{{ plot.legend_label }}</text>
+        <polyline points="{{ plot.points }}" fill="none" stroke="{{ plot.stroke }}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round" />
+        {% if plot.annotation %}
+        <line x1="{{ plot.annotation.x1 }}" y1="{{ plot.annotation.y1 }}" x2="{{ plot.annotation.x2 }}" y2="{{ plot.annotation.y2 }}" stroke="#111827" stroke-width="3" marker-end="url(#{{ svg_id }}-arrow)" />
+        <text x="{{ plot.annotation.text_x }}" y="{{ plot.annotation.text_y }}" font-size="18" font-weight="800" fill="{{ plot.annotation.color }}">
+            {% for line in plot.annotation.lines %}
+            <tspan x="{{ plot.annotation.text_x }}" dy="{% if loop.first %}0{% else %}22{% endif %}">{{ line }}</tspan>
+            {% endfor %}
+        </text>
+        {% endif %}
+    </svg>
+</div>
+<div class="chart-download-row">
+    <button type="button" class="chart-download-btn" data-chart-download data-chart-id="{{ svg_id }}" data-format="png" data-file-name="{{ file_name }}">PNG</button>
+    <button type="button" class="chart-download-btn" data-chart-download data-chart-id="{{ svg_id }}" data-format="jpeg" data-file-name="{{ file_name }}">JPG</button>
+</div>
+{%- endmacro %}
+
+{% macro render_bar_svg(svg_id, plot, file_name) -%}
+<div class="svg-chart-wrap light-chart-wrap enhanced-chart-wrap">
+    <svg id="{{ svg_id }}" class="svg-chart exportable-svg enhanced-chart" viewBox="{{ plot.view_box }}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="{{ plot.title }}" xmlns="http://www.w3.org/2000/svg" style="background:#ffffff;color-scheme:light;">
+        <rect x="0" y="0" width="{{ plot.width }}" height="{{ plot.height }}" fill="#ffffff" />
+        <rect x="{{ plot.left }}" y="{{ plot.top }}" width="{{ plot.plot_width }}" height="{{ plot.plot_height }}" fill="#ffffff" />
+        {% for tick in plot.y_ticks %}
+        <line x1="{{ plot.left }}" y1="{{ tick.y }}" x2="{{ plot.plot_right }}" y2="{{ tick.y }}" stroke="#d1d5db" stroke-width="1" stroke-dasharray="5 5" />
+        <text x="{{ plot.left - 12 }}" y="{{ tick.y + 5 }}" text-anchor="end" font-size="14" fill="#334155">{{ tick.label }}</text>
+        {% endfor %}
+        <line x1="{{ plot.left }}" y1="{{ plot.plot_bottom }}" x2="{{ plot.plot_right }}" y2="{{ plot.plot_bottom }}" stroke="#0f172a" stroke-width="1.3" />
+        <line x1="{{ plot.left }}" y1="{{ plot.top }}" x2="{{ plot.left }}" y2="{{ plot.plot_bottom }}" stroke="#0f172a" stroke-width="1.3" />
+        <text x="{{ plot.width / 2 }}" y="34" text-anchor="middle" font-size="24" font-weight="800" fill="#0f172a">{{ plot.title }}</text>
+        <text x="{{ plot.width / 2 }}" y="{{ plot.height - 22 }}" text-anchor="middle" font-size="18" fill="#0f172a">{{ plot.x_label }}</text>
+        <text x="24" y="{{ plot.top + (plot.plot_height / 2) }}" text-anchor="middle" font-size="18" fill="#0f172a" transform="rotate(-90 24 {{ plot.top + (plot.plot_height / 2) }})">{{ plot.y_label }}</text>
+        {% for bar in plot.bars %}
+        <rect x="{{ bar.x }}" y="{{ bar.y }}" width="{{ bar.width }}" height="{{ bar.height }}" rx="8" ry="8" fill="{% if bar.class == 'hard' %}#ef4444{% elif bar.class == 'preference' %}#2563eb{% elif bar.class == 'fairness' %}#14b8a6{% else %}#0f9f93{% endif %}">
+            <title>{{ bar.full_label }}: {{ bar.value_label }}</title>
+        </rect>
+        <text x="{{ bar.x + (bar.width / 2) }}" y="{{ bar.y - 8 }}" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">{{ bar.value_label }}</text>
+        {% if plot.rotate_labels %}
+        <text x="{{ bar.label_x }}" y="{{ plot.plot_bottom + 22 }}" text-anchor="end" font-size="12" fill="#334155" transform="rotate(-28 {{ bar.label_x }} {{ plot.plot_bottom + 22 }})">{{ bar.label }}</text>
+        {% else %}
+        <text x="{{ bar.label_x }}" y="{{ plot.plot_bottom + 28 }}" text-anchor="middle" font-size="14" fill="#334155">{{ bar.label }}</text>
+        {% endif %}
+        {% endfor %}
+    </svg>
+</div>
+<div class="chart-download-row">
+    <button type="button" class="chart-download-btn" data-chart-download data-chart-id="{{ svg_id }}" data-format="png" data-file-name="{{ file_name }}">PNG</button>
+    <button type="button" class="chart-download-btn" data-chart-download data-chart-id="{{ svg_id }}" data-format="jpeg" data-file-name="{{ file_name }}">JPG</button>
+</div>
+{%- endmacro %}
+
+<section class="chart-analysis-grid">
+    <article class="panel-card chart-export-card">
+        <div class="section-title-row between">
+            <div class="section-title-left">
+                <span class="section-icon teal-icon">⌁</span>
+                <div>
+                    <h2>Konvergensi Fitness</h2>
+                    <p class="muted-small">Fitness terbaik per generasi.</p>
+                </div>
+            </div>
+            {% if rv.convergence_chart.has_data %}
+            <span class="chart-last-value">{{ "%.6f"|format(rv.convergence_chart.fitness.last_value) }}</span>
+            {% endif %}
+        </div>
+        {% if rv.convergence_chart.has_data %}
+            {{ render_line_svg(chart_prefix ~ '-fitness-chart', rv.convergence_chart.fitness.plot, chart_prefix ~ '-konvergensi-fitness') }}
+            <div class="chart-meta-row"><span>Generasi: {{ rv.convergence_chart.total_generations }}</span><span>Min: {{ "%.6f"|format(rv.convergence_chart.fitness.min_value) }}</span><span>Max: {{ "%.6f"|format(rv.convergence_chart.fitness.max_value) }}</span></div>
+        {% else %}
+        <div class="empty-state-inline"><strong>Log belum tersedia</strong><p>Grafik akan muncul setelah eksekusi selesai.</p></div>
+        {% endif %}
+    </article>
+
+    <article class="panel-card chart-export-card">
+        <div class="section-title-row between">
+            <div class="section-title-left">
+                <span class="section-icon teal-icon">◇</span>
+                <div>
+                    <h2>Konvergensi Konflik</h2>
+                    <p class="muted-small">Perubahan total konflik selama iterasi.</p>
+                </div>
+            </div>
+            {% if rv.convergence_chart.has_data %}
+            <span class="chart-last-value">{{ rv.convergence_chart.conflict.last_value|int }}</span>
+            {% endif %}
+        </div>
+        {% if rv.convergence_chart.has_data %}
+            {{ render_line_svg(chart_prefix ~ '-conflict-chart', rv.convergence_chart.conflict.plot, chart_prefix ~ '-konvergensi-konflik') }}
+            <div class="chart-meta-row"><span>Generasi: {{ rv.convergence_chart.total_generations }}</span><span>Min: {{ rv.convergence_chart.conflict.min_value|int }}</span><span>Max: {{ rv.convergence_chart.conflict.max_value|int }}</span></div>
+        {% else %}
+        <div class="empty-state-inline"><strong>Log belum tersedia</strong><p>Grafik akan muncul setelah eksekusi selesai.</p></div>
+        {% endif %}
+    </article>
+
+    <article class="panel-card chart-export-card">
+        <div class="section-title-row between">
+            <div class="section-title-left">
+                <span class="section-icon blue-icon">▤</span>
+                <div>
+                    <h2>Komposisi Penalty</h2>
+                    <p class="muted-small">Hard, preferensi dosen, dan fairness.</p>
+                </div>
+            </div>
+            <span class="chart-last-value">{{ "%.4f"|format(rv.evaluation.total_penalty) }}</span>
+        </div>
+        {% if rv.penalty_chart.has_data %}
+            {{ render_bar_svg(chart_prefix ~ '-penalty-chart', rv.penalty_chart.plot, chart_prefix ~ '-komposisi-penalty') }}
+            <div class="chart-meta-row chart-label-row">
+                {% for bar in rv.penalty_chart.bars %}<span>{{ bar.label }}: {{ "%.4f"|format(bar.value) }}</span>{% endfor %}
+            </div>
+        {% else %}
+        <div class="empty-state-inline"><strong>Data penalty belum tersedia</strong></div>
+        {% endif %}
+    </article>
+
+    <article class="panel-card chart-export-card">
+        <div class="section-title-row between">
+            <div class="section-title-left">
+                <span class="section-icon teal-icon">👥</span>
+                <div>
+                    <h2>Distribusi Beban Dosen</h2>
+                    <p class="muted-small">10 dosen dengan total SKS tertinggi.</p>
+                </div>
+            </div>
+            <span class="chart-last-value">Max {{ rv.evaluation.max_sks }} SKS</span>
+        </div>
+        {% if rv.workload_chart.has_data %}
+            {{ render_bar_svg(chart_prefix ~ '-workload-chart', rv.workload_chart.plot, chart_prefix ~ '-distribusi-beban-dosen') }}
+            <div class="chart-meta-row"><span>Avg: {{ "%.2f"|format(rv.evaluation.avg_sks) }} SKS</span><span>Min: {{ rv.evaluation.min_sks }} SKS</span><span>Max: {{ rv.evaluation.max_sks }} SKS</span></div>
+        {% else %}
+        <div class="empty-state-inline"><strong>Beban dosen belum tersedia</strong></div>
+        {% endif %}
+    </article>
+</section>

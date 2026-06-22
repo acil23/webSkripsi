@@ -1,1 +1,65 @@
+# =========================
+# 1. Python & Cache
+# =========================
+# Mengabaikan semua folder __pycache__ dan file kompilasi Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# =========================
+# 2. Virtual Environment
+# =========================
+# Jika nanti menggunakan virtual environment
+venv/
+env/
 .venv/
+
+# =========================
+# 3. Environment Variables & Secrets
+# =========================
+# Penting saat nanti di-deploy ke server agar kredensial aman
+.env
+.env.local
+.env.*
+
+# =========================
+# 4. Database & Aplikasi
+# =========================
+# Mengabaikan file database SQLite (history penjadwalan)
+data/db/*.sqlite3
+data/db/*.sqlite3-journal
+
+# Mengabaikan hasil generate algoritma agar tidak memenuhi repository
+data/export/*
+data/output/*
+!data/export/.gitkeep
+!data/output/.gitkeep
+
+# Catatan: data/uploaded/ dan data/input/ tidak di-ignore secara default 
+# dengan asumsi file CSV master tersebut dibutuhkan sebagai data awal di repositori.
+# Jika file CSV itu juga tidak ingin di-push, buka komentar di bawah ini:
+# data/uploaded/*
+# data/input/*
+
+# =========================
+# 5. File Sementara & Arsip
+# =========================
+# Mengabaikan file zip seperti yang ada di tree Anda
+Temp Final.zip
+*.zip
+*.tar.gz
+*.rar
+tmp/
+temp/
+
+# =========================
+# 6. Editor & OS
+# =========================
+# Konfigurasi editor (VS Code, dll) dan file temporary OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

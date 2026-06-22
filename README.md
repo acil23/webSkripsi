@@ -1,22 +1,20 @@
-# Sistem Penjadwalan Mata Kuliah - Tahap 3
+# Sistem Penjadwalan Mata Kuliah - Tahap 8
 
-Tahap 3 mengimplementasikan UC-02 Mengelola Konfigurasi Pembukaan Kelas.
+Tahap 8 menambahkan penyimpanan riwayat jadwal menggunakan SQLite sesuai rancangan UC-07 dan UC-08.
 
-## Fitur yang sudah tersedia
+## Fitur Tahap 8
 
-1. Dashboard dan layout dasar.
-2. Upload dan validasi CSV data masukan.
-3. Pembentukan `DatasetBundle`.
-4. Halaman Konfigurasi Pembukaan Kelas.
-5. Rekomendasi jumlah kelas wajib berdasarkan jumlah mahasiswa.
-6. Rekomendasi jumlah kelas pilihan berdasarkan data Pra-KRS.
-7. Filter semester, jenis mata kuliah, dan pencarian mata kuliah.
-8. Edit jumlah kelas final.
-9. Simpan konfigurasi pembukaan kelas.
-10. Pembentukan kelas paralel dan sesi perkuliahan.
-11. Ekspor konfigurasi aktif ke `data/uploaded/Konfigurasi_Pembukaan_Kelas_<Semester>.csv` agar kompatibel dengan engine algoritma.
+- Modal Simpan Riwayat pada halaman Hasil Penjadwalan.
+- Validasi nama riwayat.
+- Penyimpanan snapshot hasil jadwal ke SQLite.
+- Penyimpanan jadwal, evaluasi, parameter, konfigurasi kelas, beban dosen, dan log konvergensi.
+- Halaman Riwayat Jadwal.
+- Filter daftar riwayat berdasarkan nama dan status feasibility.
+- Detail Riwayat Jadwal.
+- Hapus riwayat.
+- Ekspor ulang hasil riwayat dalam CSV/ZIP.
 
-## Menjalankan aplikasi
+## Menjalankan Aplikasi
 
 ```bash
 python -m venv .venv
@@ -25,38 +23,59 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Buka browser:
+Buka aplikasi di:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-## Alur uji Tahap 3
+## Alur Uji Tahap 8
 
-1. Buka `/unggah-data`.
-2. Unggah seluruh CSV masukan.
-3. Pastikan semua status data Valid.
-4. Klik `Lanjut ke Konfigurasi Pembukaan Kelas`.
-5. Pilih semester Ganjil atau Genap.
-6. Tinjau tabel rekomendasi pembukaan kelas.
-7. Ubah salah satu nilai `Kelas Final`.
-8. Klik `Simpan Konfigurasi`.
-9. Pastikan ringkasan `Kelas Terbentuk` dan `Sesi Perkuliahan` terisi.
-10. Tombol `Lanjut ke Parameter Algoritma` aktif setelah konfigurasi disimpan.
+1. Jalankan alur Tahap 1 sampai Tahap 6 hingga hasil penjadwalan tersedia.
+2. Buka `/hasil-penjadwalan`.
+3. Klik `Simpan Riwayat`.
+4. Isi nama riwayat dan simpan.
+5. Buka `/riwayat-jadwal`.
+6. Klik `Lihat Detail` pada salah satu riwayat.
+7. Coba `Ekspor Ulang`.
+8. Coba hapus salah satu riwayat.
 
-## Komponen rancangan yang terimplementasi
+## Struktur Komponen Baru
 
-- `SchedulingRouter`
-- `SchedulingController`
-- `ClassOpeningController`
-- `ClassOpeningService`
-- `KonfigurasiPembukaanKelas`
-- `KelasPerkuliahan`
-- `SesiPerkuliahan`
-- `currentClassOpening`
-- `currentClasses`
-- `currentSessions`
+- `app/entities/history_entities.py`
+- `app/repositories/history_repository.py`
+- `app/controllers/history_controller.py`
+- `app/routers/history_router.py`
+- `app/templates/riwayat_jadwal.html`
+- `app/templates/detail_riwayat.html`
 
-## Catatan scope
+SQLite tersimpan di:
 
-Tahap ini belum menjalankan Memetic Algorithm. Engine algoritma tetap belum diubah. Integrasi engine akan dilakukan pada Tahap 5 setelah parameter algoritma selesai pada Tahap 4.
+```text
+data/db/scheduling_history.sqlite3
+```
+
+Database dibuat otomatis saat aplikasi dijalankan.
+
+## Catatan Tahap 9 - Perbaikan Testing Fungsional
+
+Perbaikan yang ditambahkan pada Tahap 9:
+
+1. **Batas parameter demo cepat**
+   - `max_generations` sekarang valid mulai dari `1` sampai `1000`.
+   - `pop_size` sekarang valid mulai dari `10` sampai `500`.
+   - Batas validasi dipusatkan pada `app/entities/algorithm_entities.py` melalui konstanta `PARAMETER_LIMITS`, sehingga dapat dinaikkan atau diturunkan dengan aman tanpa mencari banyak file.
+
+2. **Progress eksekusi otomatis**
+   - Halaman `Eksekusi Penjadwalan` sekarang melakukan polling ke `/api/scheduling/status` setiap 1 detik saat proses berjalan.
+   - Progress bar, generasi, fitness, dan konflik diperbarui tanpa perlu klik menu lain atau refresh manual.
+
+3. **State tombol eksekusi lebih jelas**
+   - Saat idle: `Mulai Eksekusi`.
+   - Saat running: `Eksekusi Sedang Berjalan` dan tombol nonaktif.
+   - Setelah selesai: `Jalankan Ulang Eksekusi`.
+   - Jika gagal: `Coba Eksekusi Ulang`.
+
+## Patch Tahap 9.1 - Perbaikan polling status eksekusi
+
+Patch ini memperbaiki progress bar pada halaman Eksekusi Penjadwalan yang sebelumnya tidak bergerak otomatis. Penyebabnya adalah blok JavaScript polling status berada di luar blok `content` template Jinja, sehingga tidak ikut dirender oleh layout utama. Script polling sekarang dipindahkan ke dalam blok konten dan dibuat lebih robust dengan pengambilan status awal melalui endpoint `/api/scheduling/status`, lalu polling otomatis setiap 1 detik selama state eksekusi masih `running`.

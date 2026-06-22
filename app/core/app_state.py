@@ -2,7 +2,7 @@
 
 State ini dipakai untuk menjaga alur bertahap sesuai rancangan Bab 5:
 currentDataset, currentParameter, currentClassOpening, currentSessions, dan
-currentResult. Pada Tahap 2, field yang mulai digunakan adalah current_dataset.
+currentResult. Tahap 4 sudah menggunakan current_dataset, current_class_opening, current_sessions, dan current_parameter.
 """
 
 from dataclasses import dataclass, field

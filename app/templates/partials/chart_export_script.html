@@ -1,0 +1,73 @@
+<script>
+(function () {
+    function downloadSvgAsImage(svgId, format, fileName) {
+        const svg = document.getElementById(svgId);
+        if (!svg) {
+            alert("Grafik tidak ditemukan.");
+            return;
+        }
+
+        const clone = svg.cloneNode(true);
+        clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+        const viewBox = (svg.getAttribute("viewBox") || "0 0 1200 720").split(/\s+/).map(Number);
+        const viewBoxWidth = viewBox[2] || 1200;
+        const viewBoxHeight = viewBox[3] || 720;
+        const outputWidth = 1400;
+        const outputHeight = Math.round(outputWidth * (viewBoxHeight / viewBoxWidth));
+
+        clone.setAttribute("width", String(outputWidth));
+        clone.setAttribute("height", String(outputHeight));
+
+        const serialized = new XMLSerializer().serializeToString(clone);
+        const svgBlob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(svgBlob);
+        const image = new Image();
+
+        image.onload = function () {
+            const canvas = document.createElement("canvas");
+            canvas.width = outputWidth;
+            canvas.height = outputHeight;
+            const ctx = canvas.getContext("2d");
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(image, 0, 0, outputWidth, outputHeight);
+            URL.revokeObjectURL(url);
+
+            const mimeType = format === "jpeg" ? "image/jpeg" : "image/png";
+            const extension = format === "jpeg" ? "jpg" : "png";
+            canvas.toBlob(function (blob) {
+                if (!blob) {
+                    alert("Gagal membuat file gambar.");
+                    return;
+                }
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = downloadUrl;
+                link.download = (fileName || svgId) + "." + extension;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(downloadUrl);
+            }, mimeType, 0.95);
+        };
+
+        image.onerror = function () {
+            URL.revokeObjectURL(url);
+            alert("Gagal memuat grafik untuk diunduh.");
+        };
+
+        image.src = url;
+    }
+
+    document.querySelectorAll("[data-chart-download]").forEach(function (button) {
+        button.addEventListener("click", function () {
+            downloadSvgAsImage(
+                button.dataset.chartId,
+                button.dataset.format || "png",
+                button.dataset.fileName || button.dataset.chartId
+            );
+        });
+    });
+})();
+</script>

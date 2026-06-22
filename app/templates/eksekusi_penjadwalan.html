@@ -1,0 +1,314 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header-row">
+    <div>
+        <h1>{{ page_title }}</h1>
+        <p>{{ description }}</p>
+    </div>
+    <div class="status-card compact teal">
+        <span class="status-dot"></span>
+        <div>
+            <strong>{{ algorithm_label }}</strong>
+            <small>Algoritma aktif</small>
+        </div>
+    </div>
+</div>
+
+{% if alert %}
+<div class="alert {{ alert.type }} floating-alert">
+    <strong>{{ alert.title }}</strong>
+    <span>{{ alert.message }}</span>
+</div>
+{% endif %}
+
+<section class="execution-grid">
+    <div class="panel-card prerequisite-card">
+        <div class="section-title-row">
+            <div class="section-icon teal-icon">☑</div>
+            <h2>Prasyarat Eksekusi</h2>
+        </div>
+
+        <div class="checklist">
+            {% for item in prerequisites["items"] %}
+            <div class="check-row {{ 'ready' if item.ready else 'not-ready' }}">
+                <span class="check-icon">{{ '✓' if item.ready else '!' }}</span>
+                <span>{{ item.label }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mini-summary two-col">
+            <div>
+                <small>Kelas Terbentuk</small>
+                <strong>{{ total_classes }}</strong>
+            </div>
+            <div>
+                <small>Sesi Perkuliahan</small>
+                <strong>{{ total_sessions }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel-card run-card">
+        <div class="run-card-content">
+            <div class="rocket-icon">🚀</div>
+            <div>
+                <h2>Jalankan Proses Penjadwalan</h2>
+                <p>Sistem akan menjalankan Memetic Algorithm untuk menghasilkan jadwal terbaik berdasarkan data, konfigurasi kelas, dan parameter aktif.</p>
+                <div class="execution-meta">
+                    <span>Semester Aktif: <strong>{{ semester_active }}</strong></span>
+                    {% if parameter %}
+                    <span>Generasi Maksimum: <strong>{{ parameter.max_generations }}</strong></span>
+                    <span>Populasi: <strong>{{ parameter.pop_size }}</strong></span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <form method="post" action="/api/scheduling/execute" class="run-form" id="execution-form">
+            {% set is_running = execution_status.state == 'running' %}
+            {% set is_finished = execution_status.state == 'finished' %}
+            {% set is_failed = execution_status.state == 'failed' %}
+            <button
+                id="execution-button"
+                class="btn btn-primary btn-large {{ 'is-running' if is_running else '' }}"
+                type="submit"
+                {% if not prerequisites.is_complete or is_running %}disabled{% endif %}
+            >
+                {% if is_running %}
+                    ⏳ Eksekusi Sedang Berjalan
+                {% elif is_finished %}
+                    ↻ Jalankan Ulang Eksekusi
+                {% elif is_failed %}
+                    ↻ Coba Eksekusi Ulang
+                {% else %}
+                    ▶ Mulai Eksekusi
+                {% endif %}
+            </button>
+        </form>
+    </div>
+</section>
+
+<section class="panel-card execution-status-card">
+    <div class="section-title-row between">
+        <div class="section-title-left">
+            <div class="section-icon teal-icon">⌁</div>
+            <h2>Status Eksekusi</h2>
+        </div>
+        <span id="execution-status-pill" class="status-pill {{ execution_status.state }}">{{ execution_status.label }}</span>
+    </div>
+
+    <div class="progress-row" id="execution-progress-row">
+        <div class="progress-track {{ 'running' if execution_status.state == 'running' else '' }}" id="progress-track">
+            <div id="progress-fill" class="progress-fill {{ 'running' if execution_status.state == 'running' else '' }}" style="width: {{ execution_status.progress or 0 }}%"></div>
+        </div>
+        <strong id="progress-percent">{{ execution_status.progress or 0 }}%</strong>
+    </div>
+
+    <div class="execution-metrics">
+        <div class="execution-metric">
+            <span>↻</span>
+            <div>
+                <small>Generasi</small>
+                <strong id="metric-generation">{{ execution_status.current_generation or 0 }} / {{ execution_status.max_generations or (parameter.max_generations if parameter else 0) }}</strong>
+            </div>
+        </div>
+        <div class="execution-metric">
+            <span>◎</span>
+            <div>
+                <small>Best Fitness</small>
+                <strong id="metric-fitness">{% if execution_status.best_fitness is not none %}{{ "%.6f"|format(execution_status.best_fitness) }}{% else %}-{% endif %}</strong>
+            </div>
+        </div>
+        <div class="execution-metric">
+            <span>🛡</span>
+            <div>
+                <small>Total Konflik</small>
+                <strong id="metric-conflict">{% if execution_status.total_conflict is not none %}{{ execution_status.total_conflict }}{% else %}-{% endif %}</strong>
+            </div>
+        </div>
+    </div>
+
+    {% if execution_status.error %}
+    <div class="alert error inline-alert">
+        <strong>Detail kesalahan</strong>
+        <span>{{ execution_status.error }}</span>
+    </div>
+    {% endif %}
+</section>
+
+{% if result_summary %}
+<section class="completion-card">
+    <div class="completion-icon">✓</div>
+    <div class="completion-content">
+        <h2>Eksekusi Selesai</h2>
+        <p>
+            Waktu Komputasi: <strong>{{ "%.2f"|format(result_summary.waktu_komputasi) }} detik</strong> ·
+            Fitness: <strong>{{ "%.6f"|format(result_summary.fitness) }}</strong> ·
+            Total Konflik: <strong>{{ result_summary.total_conflict }}</strong>
+        </p>
+    </div>
+    <a class="btn btn-outline" href="/hasil-penjadwalan">Lihat Hasil Jadwal</a>
+</section>
+{% endif %}
+
+{% if not prerequisites.is_complete %}
+<div class="info-strip">
+    <span>ℹ</span>
+    <p>Eksekusi hanya dapat dilakukan setelah data masukan valid, konfigurasi kelas tersimpan, parameter valid, dan sesi perkuliahan terbentuk.</p>
+</div>
+{% endif %}
+
+<script>
+(function () {
+    const statusPill = document.getElementById("execution-status-pill");
+    const progressFill = document.getElementById("progress-fill");
+    const progressTrack = document.getElementById("progress-track");
+    const progressPercent = document.getElementById("progress-percent");
+    const metricGeneration = document.getElementById("metric-generation");
+    const metricFitness = document.getElementById("metric-fitness");
+    const metricConflict = document.getElementById("metric-conflict");
+    const executionButton = document.getElementById("execution-button");
+    const executionForm = document.getElementById("execution-form");
+
+    let initialState = "{{ execution_status.state }}";
+    let hasSeenRunningState = initialState === "running";
+    let pollTimer = null;
+
+    function formatFitness(value) {
+        if (value === null || value === undefined) {
+            return "-";
+        }
+        const numberValue = Number(value);
+        return Number.isFinite(numberValue) ? numberValue.toFixed(6) : "-";
+    }
+
+    function updateButton(state) {
+        if (!executionButton) {
+            return;
+        }
+        executionButton.classList.remove("is-running");
+
+        if (state === "running") {
+            executionButton.disabled = true;
+            executionButton.classList.add("is-running");
+            executionButton.textContent = "⏳ Eksekusi Sedang Berjalan";
+        } else if (state === "finished") {
+            executionButton.disabled = false;
+            executionButton.textContent = "↻ Jalankan Ulang Eksekusi";
+        } else if (state === "failed") {
+            executionButton.disabled = false;
+            executionButton.textContent = "↻ Coba Eksekusi Ulang";
+        } else {
+            executionButton.disabled = {{ 'false' if prerequisites.is_complete else 'true' }};
+            executionButton.textContent = "▶ Mulai Eksekusi";
+        }
+    }
+
+    function updateStatusView(payload) {
+        const status = payload.status || {};
+        const state = status.state || "idle";
+        const progress = Math.max(0, Math.min(100, Number(status.progress || 0)));
+
+        if (state === "running") {
+            hasSeenRunningState = true;
+        }
+
+        if (statusPill) {
+            statusPill.textContent = status.label || "Belum Berjalan";
+            statusPill.className = "status-pill " + state;
+        }
+        if (progressFill) {
+            progressFill.style.width = progress + "%";
+            progressFill.classList.toggle("running", state === "running");
+        }
+        if (progressTrack) {
+            progressTrack.classList.toggle("running", state === "running");
+        }
+        if (progressPercent) {
+            progressPercent.textContent = progress + "%";
+        }
+        if (metricGeneration) {
+            metricGeneration.textContent = (status.current_generation || 0) + " / " + (status.max_generations || 0);
+        }
+        if (metricFitness) {
+            metricFitness.textContent = formatFitness(status.best_fitness);
+        }
+        if (metricConflict) {
+            metricConflict.textContent = status.total_conflict === null || status.total_conflict === undefined ? "-" : status.total_conflict;
+        }
+
+        updateButton(state);
+
+        if (state === "finished" && payload.has_result && hasSeenRunningState) {
+            // Pindah ke halaman GET agar browser tidak menampilkan dialog
+            // "resend form" setelah eksekusi selesai.
+            window.setTimeout(function () {
+                window.location.replace("/eksekusi-penjadwalan?alert_type=success&alert_title=Eksekusi%20Selesai&alert_message=Hasil%20penjadwalan%20sudah%20tersedia.");
+            }, 700);
+            return false;
+        }
+
+        return state === "running";
+    }
+
+    async function pollExecutionStatus() {
+        try {
+            const response = await fetch("/api/scheduling/status", {
+                cache: "no-store",
+                headers: { "Accept": "application/json" }
+            });
+            const payload = await response.json();
+            const shouldContinue = updateStatusView(payload);
+
+            if (!shouldContinue && pollTimer) {
+                window.clearInterval(pollTimer);
+                pollTimer = null;
+            }
+            if (shouldContinue && !pollTimer) {
+                pollTimer = window.setInterval(pollExecutionStatus, 1000);
+            }
+        } catch (error) {
+            console.error("Gagal memperbarui status eksekusi:", error);
+        }
+    }
+
+    if (executionForm && executionButton) {
+        executionForm.addEventListener("submit", async function (event) {
+            event.preventDefault();
+            hasSeenRunningState = true;
+            executionButton.disabled = true;
+            executionButton.classList.add("is-running");
+            executionButton.textContent = "⏳ Memulai Eksekusi...";
+
+            try {
+                const response = await fetch(executionForm.action, {
+                    method: "POST",
+                    cache: "no-store",
+                    headers: {
+                        "Accept": "application/json",
+                        "X-Requested-With": "fetch"
+                    }
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload.message || "Eksekusi gagal dimulai.");
+                }
+                window.setTimeout(pollExecutionStatus, 250);
+            } catch (error) {
+                executionButton.disabled = false;
+                executionButton.classList.remove("is-running");
+                executionButton.textContent = "↻ Coba Eksekusi Ulang";
+                alert(error.message || "Eksekusi gagal dimulai.");
+            }
+        });
+    }
+
+    // Ambil status terbaru sekali setiap halaman dibuka. Jika status running,
+    // fungsi ini otomatis melanjutkan polling setiap 1 detik.
+    pollExecutionStatus();
+})();
+</script>
+
+{% endblock %}

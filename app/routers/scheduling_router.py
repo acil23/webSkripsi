@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from urllib.parse import quote
 
 from app.controllers.scheduling_controller import SchedulingController
 from app.core.paths import TEMPLATE_DIR
@@ -13,6 +14,21 @@ from app.services.data_loader_service import UploadedCsvPayload
 router = APIRouter()
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 controller = SchedulingController()
+
+
+def _alert_query(alert_type: str, title: str, message: str) -> str:
+    return f"alert_type={quote(alert_type)}&alert_title={quote(title)}&alert_message={quote(message)}"
+
+
+def _read_alert_from_query(request: Request) -> dict | None:
+    alert_type = request.query_params.get("alert_type")
+    if not alert_type:
+        return None
+    return {
+        "type": alert_type,
+        "title": request.query_params.get("alert_title", "Informasi"),
+        "message": request.query_params.get("alert_message", ""),
+    }
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -189,35 +205,100 @@ async def update_class_opening(
 
 @router.get("/parameter-algoritma", response_class=HTMLResponse)
 def parameter_page(request: Request):
-    context = controller.get_placeholder_context(
-        title="Pengaturan Parameter Algoritma",
-        description="Form parameter dan validasi algoritma akan diimplementasikan pada Tahap 4.",
-    )
+    context = controller.get_parameter_page_context()
     return templates.TemplateResponse(
-        "placeholder.html",
+        "parameter_algoritma.html",
+        {"request": request, "active_menu": "Parameter Algoritma", **context},
+    )
+
+
+@router.post("/api/parameters", response_class=HTMLResponse)
+async def save_parameters(request: Request):
+    form = await request.form()
+    parameter = controller.save_parameters(dict(form))
+    if parameter.is_valid():
+        alert = {
+            "type": "success",
+            "title": "Berhasil!",
+            "message": "Parameter algoritma berhasil disimpan.",
+        }
+    else:
+        alert = {
+            "type": "error",
+            "title": "Terdapat parameter tidak valid.",
+            "message": "Silakan perbaiki nilai yang tidak valid sebelum melanjutkan.",
+        }
+    context = controller.get_parameter_page_context(draft_parameter=parameter, alert=alert)
+    return templates.TemplateResponse(
+        "parameter_algoritma.html",
         {"request": request, "active_menu": "Parameter Algoritma", **context},
     )
 
 
 @router.get("/eksekusi-penjadwalan", response_class=HTMLResponse)
 def execution_page(request: Request):
-    context = controller.get_placeholder_context(
-        title="Eksekusi Penjadwalan",
-        description="Checklist prasyarat dan integrasi Memetic Algorithm akan diimplementasikan pada Tahap 5.",
-    )
+    alert = _read_alert_from_query(request)
+    context = controller.get_execution_page_context(alert=alert)
     return templates.TemplateResponse(
-        "placeholder.html",
+        "eksekusi_penjadwalan.html",
         {"request": request, "active_menu": "Eksekusi Penjadwalan", **context},
     )
 
 
+@router.post("/api/scheduling/execute")
+async def execute_scheduling(request: Request):
+    """Memulai eksekusi.
+
+    Jalur browser biasa memakai redirect 303 agar Firefox/Chrome tidak memunculkan
+    dialog resend form saat halaman di-refresh otomatis. Jalur JavaScript/fetch
+    menerima JSON supaya halaman dapat mulai polling tanpa navigasi halaman.
+    """
+    is_fetch_request = request.headers.get("x-requested-with") == "fetch"
+    try:
+        controller.start_scheduling_execution()
+    except Exception as exc:
+        if is_fetch_request:
+            return JSONResponse(
+                status_code=400,
+                content={"ok": False, "message": str(exc)},
+            )
+        query = _alert_query("error", "Eksekusi gagal dimulai", str(exc))
+        return RedirectResponse(url=f"/eksekusi-penjadwalan?{query}", status_code=303)
+
+    message = "Proses penjadwalan sedang berjalan. Halaman akan memperbarui status secara berkala."
+    if is_fetch_request:
+        return {"ok": True, "message": message}
+    query = _alert_query("success", "Eksekusi dimulai", message)
+    return RedirectResponse(url=f"/eksekusi-penjadwalan?{query}", status_code=303)
+
+
+@router.get("/api/scheduling/status")
+def scheduling_status():
+    result = controller.get_current_result()
+    return {
+        "status": controller.get_execution_page_context().get("execution_status"),
+        "has_result": bool(result and result.is_ready_to_display()),
+        "summary": result.to_summary() if result and result.is_ready_to_display() else None,
+    }
+
+
 @router.get("/hasil-penjadwalan", response_class=HTMLResponse)
 def result_page(request: Request):
-    context = controller.get_placeholder_context(
-        title="Hasil Jadwal dan Evaluasi",
-        description="Tabel jadwal, metrik evaluasi, grafik konvergensi, dan beban dosen akan diimplementasikan pada Tahap 6.",
-    )
+    alert = None
+    alert_type = request.query_params.get("alert_type")
+    if alert_type:
+        alert = {
+            "type": alert_type,
+            "title": request.query_params.get("alert_title", "Informasi"),
+            "message": request.query_params.get("alert_message", ""),
+        }
+    context = controller.get_result_page_context(alert=alert)
     return templates.TemplateResponse(
-        "placeholder.html",
+        "hasil_penjadwalan.html",
         {"request": request, "active_menu": "Hasil Penjadwalan", **context},
     )
+
+
+@router.get("/api/scheduling/result")
+def scheduling_result():
+    return controller.get_result_api_data()

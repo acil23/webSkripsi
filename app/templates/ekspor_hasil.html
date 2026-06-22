@@ -1,0 +1,103 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header-row result-header">
+    <div class="page-header">
+        <h1>{{ page_title }}</h1>
+        <p>{{ description }}</p>
+    </div>
+    <div class="result-actions">
+        {% if has_result %}
+            <span class="status-pill success">✓ Hasil tersedia</span>
+        {% else %}
+            <span class="status-pill neutral">i Hasil belum tersedia</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if alert %}
+<div class="inline-alert {{ alert.type if alert.type != 'info' else 'info' }}">
+    <span>{% if alert.type == 'error' %}!{% elif alert.type == 'success' %}✓{% else %}i{% endif %}</span>
+    <div>
+        <strong>{{ alert.title }}</strong>
+        <p>{{ alert.message }}</p>
+    </div>
+</div>
+{% endif %}
+
+{% if not has_result %}
+<section class="dashboard-card placeholder-card result-empty-card">
+    <div class="placeholder-icon">⇩</div>
+    <h2>Belum Ada Hasil yang Dapat Diekspor</h2>
+    <p>Ekspor hasil penjadwalan hanya dapat dilakukan setelah proses eksekusi selesai dan sistem memiliki objek PenjadwalanResult.</p>
+    <a class="primary-button" href="/eksekusi-penjadwalan">Jalankan Eksekusi Penjadwalan</a>
+</section>
+{% else %}
+<section class="export-summary-grid">
+    <article class="metric-card result-metric blue">
+        <div class="metric-icon blue">▣</div>
+        <div>
+            <span>Total Sesi Jadwal</span>
+            <strong>{{ summary.total_items }}</strong>
+        </div>
+    </article>
+    <article class="metric-card result-metric teal">
+        <div class="metric-icon teal">↗</div>
+        <div>
+            <span>Fitness</span>
+            <strong>{{ "%.6f"|format(summary.fitness) }}</strong>
+        </div>
+    </article>
+    <article class="metric-card result-metric green">
+        <div class="metric-icon green">◇</div>
+        <div>
+            <span>Total Konflik</span>
+            <strong>{{ summary.total_conflict }}</strong>
+        </div>
+    </article>
+    <article class="metric-card result-metric purple">
+        <div class="metric-icon purple">♎</div>
+        <div>
+            <span>Standar Deviasi Beban</span>
+            <strong>{{ "%.4f"|format(summary.standar_deviasi_beban) }}</strong>
+        </div>
+    </article>
+</section>
+
+<section class="panel-card export-panel">
+    <div class="section-title-row">
+        <span class="section-icon blue-icon">⇩</span>
+        <div>
+            <h2>Pilih Data yang Akan Diekspor</h2>
+            <p class="muted-small">Pilih salah satu berkas CSV atau unduh paket ZIP lengkap.</p>
+        </div>
+    </div>
+
+    <div class="export-card-grid">
+        {% for item in export_manifest %}
+        <article class="export-card {% if item.wide %}wide{% endif %}">
+            <div class="export-card-icon {{ item.key }}">{{ item.icon }}</div>
+            <div class="export-card-body">
+                <h3>{{ item.title }}</h3>
+                <p>{{ item.description }}</p>
+                <div class="export-meta-row">
+                    <span>Format: {{ item.format }}</span>
+                    <span>{{ item.meta }}</span>
+                </div>
+                <a class="primary-button export-download" href="{{ item.url }}">⇩ Unduh {{ item.format }}</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+
+    <div class="inline-note export-note">
+        <span>i</span>
+        <p>Ekspor hanya dapat dilakukan setelah hasil penjadwalan tersedia. File CSV menggunakan encoding UTF-8 agar aman dibuka di aplikasi spreadsheet.</p>
+    </div>
+
+    <div class="form-actions left-actions">
+        <a class="secondary-action" href="/hasil-penjadwalan">← Kembali ke Hasil Jadwal</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

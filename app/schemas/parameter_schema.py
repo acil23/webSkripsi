@@ -1,0 +1,76 @@
+"""Skema dan metadata field parameter algoritma untuk form Tahap 4."""
+
+from app.entities.algorithm_entities import PARAMETER_LIMITS
+
+
+PARAMETER_FIELDS = [
+    {
+        "name": "pop_size",
+        "label": "Ukuran Populasi",
+        "type": "number",
+        "step": "1",
+        "hint": f"Rentang valid: {PARAMETER_LIMITS['pop_size_min']} - {PARAMETER_LIMITS['pop_size_max']}",
+        "min": PARAMETER_LIMITS["pop_size_min"],
+        "max": PARAMETER_LIMITS["pop_size_max"],
+        "placeholder": "150",
+    },
+    {
+        "name": "max_generations",
+        "label": "Jumlah Generasi Maksimum",
+        "type": "number",
+        "step": "1",
+        "hint": f"Rentang valid: {PARAMETER_LIMITS['max_generations_min']} - {PARAMETER_LIMITS['max_generations_max']}. Untuk demo cepat dapat memakai 5 - 20 generasi.",
+        "min": PARAMETER_LIMITS["max_generations_min"],
+        "max": PARAMETER_LIMITS["max_generations_max"],
+        "placeholder": "300",
+    },
+    {
+        "name": "crossover_rate",
+        "label": "Crossover Rate",
+        "type": "number",
+        "step": "0.01",
+        "hint": "Rentang valid: 0.0 - 1.0",
+        "min": PARAMETER_LIMITS["rate_min"],
+        "max": PARAMETER_LIMITS["rate_max"],
+        "placeholder": "0.80",
+    },
+    {
+        "name": "mutation_rate",
+        "label": "Mutation Rate",
+        "type": "number",
+        "step": "0.01",
+        "hint": "Rentang valid: 0.0 - 1.0",
+        "min": PARAMETER_LIMITS["rate_min"],
+        "max": PARAMETER_LIMITS["rate_max"],
+        "placeholder": "0.20",
+    },
+    {
+        "name": "local_search_chance",
+        "label": "Peluang Local Search",
+        "type": "number",
+        "step": "0.01",
+        "hint": "Rentang valid: 0.0 - 1.0",
+        "min": PARAMETER_LIMITS["rate_min"],
+        "max": PARAMETER_LIMITS["rate_max"],
+        "placeholder": "0.40",
+    },
+    {
+        "name": "elitism",
+        "label": "Elitism",
+        "type": "number",
+        "step": "1",
+        "hint": f"Rentang valid: {PARAMETER_LIMITS['elitism_min']} - {PARAMETER_LIMITS['elitism_max']}",
+        "min": PARAMETER_LIMITS["elitism_min"],
+        "max": PARAMETER_LIMITS["elitism_max"],
+        "placeholder": "2",
+    },
+    {
+        "name": "seed",
+        "label": "Seed",
+        "type": "number",
+        "step": "1",
+        "hint": "Opsional, contoh: 42",
+        "min": 0,
+        "placeholder": "42",
+    },
+]

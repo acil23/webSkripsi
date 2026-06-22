@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header parameter-header">
+    <div>
+        <h1>Pengaturan Parameter Algoritma</h1>
+        <p>{{ description }}</p>
+    </div>
+    <div class="parameter-status-cards">
+        <div class="algorithm-active-card">
+            <span class="algorithm-icon">✳</span>
+            <div>
+                <span>Algoritma Aktif</span>
+                <strong>{{ algorithm_label }}</strong>
+            </div>
+        </div>
+        <div class="save-status-card {% if is_parameter_saved %}saved{% endif %}">
+            <span class="save-dot">{% if is_parameter_saved %}✓{% else %}○{% endif %}</span>
+            <div>
+                <span>Status Penyimpanan</span>
+                <strong>{% if is_parameter_saved %}Tersimpan{% else %}Belum disimpan{% endif %}</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if alert %}
+    <div class="inline-alert {{ alert.type }}">
+        <span>{% if alert.type == 'success' %}✓{% else %}⚠{% endif %}</span>
+        <div>
+            <strong>{{ alert.title }}</strong>
+            <p>{{ alert.message }}</p>
+        </div>
+    </div>
+{% endif %}
+
+<div class="parameter-layout">
+    <section class="parameter-form-card">
+        <div class="section-heading-with-icon">
+            <span class="heading-icon blue">⚙</span>
+            <h2>Parameter Eksekusi Algoritma</h2>
+        </div>
+
+        <form action="/api/parameters" method="post" class="parameter-form">
+            <div class="parameter-form-grid">
+                {% for field in parameter_fields %}
+                    {% set current_value = parameter|attr(field.name) %}
+                    {% set error_message = parameter.error_for(field.name) %}
+                    <label class="parameter-field {% if error_message %}has-error{% endif %}">
+                        <span>{{ field.label }}</span>
+                        <input
+                            type="{{ field.type }}"
+                            name="{{ field.name }}"
+                            step="{{ field.step }}"
+                            {% if field.min is defined %}min="{{ field.min }}"{% endif %}
+                            {% if field.max is defined %}max="{{ field.max }}"{% endif %}
+                            value="{{ '' if current_value is none else current_value }}"
+                            placeholder="{{ field.placeholder }}"
+                        />
+                        <small>{{ field.hint }}</small>
+                        {% if error_message %}
+                            <em class="field-error">⚠ {{ error_message }}</em>
+                        {% endif %}
+                    </label>
+                {% endfor %}
+            </div>
+
+            <div class="parameter-info-note">
+                <span class="summary-icon">i</span>
+                <p>Parameter digunakan untuk proses optimasi jadwal menggunakan <strong>{{ algorithm_label }}</strong>.</p>
+            </div>
+
+            <div class="parameter-action-row">
+                <button class="secondary-action" type="submit">▣ Simpan Parameter</button>
+                {% if is_parameter_saved %}
+                    <a class="primary-button" href="/eksekusi-penjadwalan">Lanjut ke Eksekusi Penjadwalan →</a>
+                {% else %}
+                    <button class="primary-button disabled" type="button" disabled>Lanjut ke Eksekusi Penjadwalan →</button>
+                {% endif %}
+            </div>
+        </form>
+    </section>
+
+    <aside class="parameter-summary-card">
+        <div class="section-heading-with-icon">
+            <span class="heading-icon teal">▤</span>
+            <h2>Ringkasan Parameter</h2>
+        </div>
+
+        <div class="parameter-summary-list">
+            {% for row in summary_rows %}
+                {% set row_error = parameter.error_for(row.field) %}
+                <div class="summary-row {% if row_error %}invalid{% endif %}">
+                    <span>{{ row.label }}</span>
+                    <strong>{{ row.value }}</strong>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if is_parameter_valid %}
+            <div class="parameter-message success">
+                <span>✓</span>
+                <div>
+                    <strong>Parameter valid.</strong>
+                    <p>{% if is_parameter_saved %}Parameter siap digunakan pada tahap eksekusi.{% else %}Simpan parameter sebelum melanjutkan ke eksekusi.{% endif %}</p>
+                </div>
+            </div>
+        {% else %}
+            <div class="parameter-message warning">
+                <span>⚠</span>
+                <div>
+                    <strong>Terdapat parameter tidak valid.</strong>
+                    <p>Silakan perbaiki nilai yang tidak valid sebelum melanjutkan.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="prerequisite-mini-card">
+            <h3>Status Prasyarat Berikutnya</h3>
+            <div class="mini-check {% if is_dataset_ready %}ok{% endif %}">
+                <span>{% if is_dataset_ready %}✓{% else %}○{% endif %}</span>
+                Data masukan valid
+            </div>
+            <div class="mini-check {% if is_class_opening_ready %}ok{% endif %}">
+                <span>{% if is_class_opening_ready %}✓{% else %}○{% endif %}</span>
+                Konfigurasi kelas tersimpan
+            </div>
+            <div class="mini-check {% if is_parameter_saved %}ok{% endif %}">
+                <span>{% if is_parameter_saved %}✓{% else %}○{% endif %}</span>
+                Parameter algoritma valid
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}

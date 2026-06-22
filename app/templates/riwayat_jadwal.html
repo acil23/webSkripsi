@@ -1,0 +1,129 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="page-header-row result-header">
+    <div class="page-header">
+        <h1>{{ page_title }}</h1>
+        <p>{{ description }}</p>
+    </div>
+</div>
+
+{% if alert %}
+<div class="inline-alert {{ alert.type if alert.type != 'info' else 'info' }}">
+    <span>{% if alert.type == 'error' %}!{% elif alert.type == 'success' %}✓{% else %}i{% endif %}</span>
+    <div>
+        <strong>{{ alert.title }}</strong>
+        <p>{{ alert.message }}</p>
+    </div>
+</div>
+{% endif %}
+
+<section class="history-metric-grid">
+    <article class="metric-card result-metric blue">
+        <div class="metric-icon blue">▣</div>
+        <div><span>Total Riwayat</span><strong>{{ total_histories }}</strong><p>Semua riwayat tersimpan</p></div>
+    </article>
+    <article class="metric-card result-metric teal">
+        <div class="metric-icon teal">◷</div>
+        <div>
+            <span>Riwayat Terakhir</span>
+            {% if latest_history %}
+                <strong>{{ latest_history.waktu_simpan }}</strong><p>{{ latest_history.nama_riwayat }}</p>
+            {% else %}
+                <strong>-</strong><p>Belum tersedia</p>
+            {% endif %}
+        </div>
+    </article>
+    <article class="metric-card result-metric green">
+        <div class="metric-icon green">◇</div>
+        <div><span>Jadwal Feasible</span><strong>{{ feasible_count }}</strong><p>Dari {{ total_histories }} riwayat</p></div>
+    </article>
+</section>
+
+<section class="panel-card history-filter-panel">
+    <form method="get" action="/riwayat-jadwal" class="history-filter-form">
+        <label>
+            <span>Cari nama riwayat</span>
+            <input type="text" name="search" value="{{ search }}" placeholder="Cari nama riwayat" />
+        </label>
+        <label>
+            <span>Status</span>
+            <select name="status">
+                {% for option in ['Semua Status', 'Feasible', 'Masih Ada Konflik'] %}
+                <option value="{{ option }}" {% if status == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <button class="primary-button" type="submit">Terapkan Filter</button>
+        <a class="secondary-action" href="/riwayat-jadwal">Reset Filter</a>
+    </form>
+</section>
+
+<section class="history-layout">
+    <article class="panel-card history-list-panel">
+        <div class="section-title-row between">
+            <div class="section-title-left">
+                <span class="section-icon blue-icon">▣</span>
+                <div><h2>Daftar Riwayat Jadwal</h2><p class="muted-small">Menampilkan {{ total_filtered }} dari {{ total_histories }} data.</p></div>
+            </div>
+        </div>
+
+        {% if histories %}
+        <div class="table-wrapper">
+            <table class="result-table history-table">
+                <thead>
+                    <tr>
+                        <th>Nama Riwayat</th>
+                        <th>Waktu Simpan</th>
+                        <th>Fitness</th>
+                        <th>Total Konflik</th>
+                        <th>Total Penalty</th>
+                        <th>Status</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in histories %}
+                    <tr>
+                        <td><strong>{{ item.nama_riwayat }}</strong><br><span class="muted-small">{{ item.semester_active }} · {{ item.model_name }}</span></td>
+                        <td>{{ item.waktu_simpan }}</td>
+                        <td>{{ "%.6f"|format(item.fitness) }}</td>
+                        <td>{{ item.total_conflict }}</td>
+                        <td>{{ "%.4f"|format(item.total_penalty) }}</td>
+                        <td><span class="feasibility-badge {{ item.status_class }}">{{ item.status_label }}</span></td>
+                        <td class="history-action-cell">
+                            <a class="table-action" href="/riwayat-jadwal/{{ item.id_riwayat }}">Lihat Detail</a>
+                            <a class="table-action" href="#export-{{ item.id_riwayat }}">Ekspor</a>
+                            <form method="post" action="/history/{{ item.id_riwayat }}/delete" onsubmit="return confirm('Hapus riwayat ini?');">
+                                <button class="danger-action" type="submit">Hapus</button>
+                            </form>
+                    <div id="export-{{ item.id_riwayat }}" class="modal-overlay">
+                        <div class="history-modal-card export-choice-modal">
+                            <a href="#" class="modal-close" aria-label="Tutup modal">×</a>
+                            <h2>Ekspor Riwayat</h2>
+                            <p class="muted-small"><strong>{{ item.nama_riwayat }}</strong><br>Pilih format berkas yang ingin diunduh.</p>
+                            <div class="export-choice-grid">
+                                <a class="export-choice-card" href="/history/{{ item.id_riwayat }}/export/schedule"><strong>Jadwal Perkuliahan</strong><span>CSV</span></a>
+                                <a class="export-choice-card" href="/history/{{ item.id_riwayat }}/export/evaluation"><strong>Evaluasi Jadwal</strong><span>CSV</span></a>
+                                <a class="export-choice-card" href="/history/{{ item.id_riwayat }}/export/workload"><strong>Beban Dosen</strong><span>CSV</span></a>
+                                <a class="export-choice-card" href="/history/{{ item.id_riwayat }}/export/convergence-log"><strong>Log Konvergensi</strong><span>CSV</span></a>
+                                <a class="export-choice-card wide" href="/history/{{ item.id_riwayat }}/export/package"><strong>Paket Lengkap</strong><span>ZIP</span></a>
+                            </div>
+                        </div>
+                    </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="history-empty-state">
+            <div class="placeholder-icon">◷</div>
+            <h2>Belum ada riwayat jadwal.</h2>
+            <p>Riwayat jadwal yang disimpan akan muncul di daftar ini.</p>
+        </div>
+        {% endif %}
+    </article>
+</section>
+{% endblock %}
